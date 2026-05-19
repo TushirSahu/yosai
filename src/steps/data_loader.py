@@ -20,7 +20,7 @@ def load_data(
 
         for img_name in os.listdir(cls_dir):
             img_path = os.path.join(cls_dir, img_name)
-            img = cv2.imread(img_path)
+            img = cv2.imread(img_path)  # pylint: disable=no-member
             if img is not None:
                 img = img.astype(np.float32) / 255.0
                 images.append(np.transpose(img, (2, 0, 1)))  # NCHW format

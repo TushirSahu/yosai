@@ -9,11 +9,12 @@ error handling, and production-grade logging.
 
 import json
 import logging
+import os
 import torch
 import numpy as np
 from kafka import KafkaConsumer, KafkaProducer
 from kafka.errors import KafkaError
-import boto3
+import boto3  # pylint: disable=import-error
 import time
 from datetime import datetime
 from typing import Dict, Optional, Any
@@ -303,6 +304,4 @@ def main():
 
 
 if __name__ == "__main__":
-    import os
-
     main()
