@@ -14,7 +14,6 @@ def generate_dataset(num_samples=100, output_dir="data/raw"):
         base = np.ones((224, 224, 3), dtype=np.uint8) * 150
         noise = np.random.normal(0, 10, (224, 224, 3)).astype(np.uint8)
         img = cv2.add(base, noise)  # pylint: disable=no-member
-
         # 80% Normal, 20% Anomaly
         if np.random.rand() > 0.2:
             cv2.imwrite(
