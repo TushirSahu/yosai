@@ -104,7 +104,7 @@ mlflow ui
 # Open http://127.0.0.1:5000
 ```
 
-### Run the Continuous Training Demo (⭐ IMPRESSIVE FOR INTERVIEWS)
+### Run the Continuous Training Demo 
 ```bash
 # This demonstrates the full continuous training loop
 python demonstrate_continuous_training.py
@@ -125,8 +125,8 @@ python demonstrate_continuous_training.py
 ```
 yosai_mlops/
 ├── README.md                              # This file
-├── CONTINUOUS_TRAINING_DEMO.md            # ⭐ Show this to interviewers
-├── demonstrate_continuous_training.py     # ⭐ Run this demo
+├── CONTINUOUS_TRAINING_DEMO.md         
+├── demonstrate_continuous_training.py    
 ├── run_pipeline.py                        # Simple pipeline execution
 ├── requirements.txt                       # Dependencies
 │
