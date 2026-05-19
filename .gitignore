@@ -1,0 +1,8 @@
+*.md
+!README.md
+*.ipynb
+*.pyc
+__pycache__/
+*.log
+./.venv/
+./data/

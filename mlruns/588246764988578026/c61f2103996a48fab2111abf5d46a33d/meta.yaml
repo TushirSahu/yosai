@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/tushirsahu/Desktop/yosai_mlops/mlruns/588246764988578026/c61f2103996a48fab2111abf5d46a33d/artifacts
+end_time: 1779102513093
+entry_point_name: ''
+experiment_id: '588246764988578026'
+lifecycle_stage: active
+run_id: c61f2103996a48fab2111abf5d46a33d
+run_name: shivering-cat-256
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1779102484518
+status: 3
+tags: []
+user_id: tushirsahu

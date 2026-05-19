@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/tushirsahu/Desktop/yosai_mlops/mlruns/588246764988578026/71c64192f063463085e42fb725334db5/artifacts
+end_time: 1779103766741
+entry_point_name: ''
+experiment_id: '588246764988578026'
+lifecycle_stage: active
+run_id: 71c64192f063463085e42fb725334db5
+run_name: painted-foal-781
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1779103765325
+status: 4
+tags: []
+user_id: tushirsahu

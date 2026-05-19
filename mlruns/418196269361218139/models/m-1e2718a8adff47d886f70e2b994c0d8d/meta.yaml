@@ -1,0 +1,10 @@
+artifact_location: file:///Users/tushirsahu/Desktop/yosai_mlops/mlruns/418196269361218139/models/m-1e2718a8adff47d886f70e2b994c0d8d/artifacts
+creation_timestamp: 1779163751062
+experiment_id: '418196269361218139'
+last_updated_timestamp: 1779163751410
+model_id: m-1e2718a8adff47d886f70e2b994c0d8d
+model_type: null
+name: model
+source_run_id: 03f94c8cb744471ba3a10cee81d5927b
+status: 2
+status_message: null

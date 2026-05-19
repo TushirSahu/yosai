@@ -1,0 +1,8 @@
+artifact_location: file:///Users/tushirsahu/Desktop/yosai_mlops/mlruns/418196269361218139
+creation_time: 1779163217224
+experiment_id: '418196269361218139'
+last_update_time: 1779163217224
+lifecycle_stage: active
+name: yosai-continuous-training-demo
+trace_location: null
+workspace: default

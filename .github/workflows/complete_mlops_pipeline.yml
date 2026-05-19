@@ -1,0 +1,396 @@
+name: Complete MLOps CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 2 * * *'  # Daily retraining at 2 AM
+
+env:
+  REGISTRY: gcr.io
+  PROJECT_ID: yosai-mlops
+  IMAGE_NAME_TRAINING: yosai-training
+  IMAGE_NAME_TRITON: yosai-triton
+  IMAGE_NAME_DRIFT: yosai-drift-detection
+
+jobs:
+  # Stage 1: Testing & Code Quality
+  test-and-lint:
+    runs-on: ubuntu-latest
+    name: Unit Tests & Code Quality
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Full history for better diffs
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pylint black mypy
+    
+    - name: Code formatting check (Black)
+      run: black --check src/
+      continue-on-error: true
+    
+    - name: Type checking (MyPy)
+      run: mypy src/ --ignore-missing-imports
+      continue-on-error: true
+    
+    - name: Run unit tests
+      run: |
+        pytest tests/unit/ -v --cov=src/ --cov-report=xml
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage.xml
+    
+    - name: Run linting
+      run: pylint src/ --disable=all --enable=E --max-line-length=120
+
+  # Stage 2: Integration Tests
+  integration-tests:
+    runs-on: ubuntu-latest
+    name: Integration Tests with Docker
+    needs: test-and-lint
+    
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install pytest-integration
+    
+    - name: Run integration tests (Kafka, S3, DB)
+      env:
+        DATABASE_URL: postgresql://postgres:testdb@localhost:5432/test_db
+      run: |
+        pytest tests/integration/ -v --tb=short
+    
+    - name: Test data pipeline end-to-end
+      run: |
+        python tests/integration/test_data_pipeline.py
+
+  # Stage 3: Model Training & Validation
+  train-and-validate:
+    runs-on: [self-hosted, gpu]  # Uses GPU runner
+    name: Train Model & Validate
+    needs: integration-tests
+    if: github.event_name == 'schedule' || github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install PyTorch with CUDA
+      run: |
+        pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+        pip install -r requirements.txt
+    
+    - name: Download training data from S3
+      run: |
+        aws s3 cp s3://yosai-mlops-data/data/processed/ data/processed/ --recursive
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    
+    - name: Run distributed training (4 GPUs)
+      run: |
+        python -m torch.distributed.launch \
+          --nproc_per_node=4 \
+          src/pipelines/distributed_training.py \
+          --batch-size 128 \
+          --epochs 100 \
+          --learning-rate 1e-4
+      env:
+        MLFLOW_TRACKING_URI: postgresql://${{ secrets.MLFLOW_DB_USER }}:${{ secrets.MLFLOW_DB_PASSWORD }}@mlflow.prod.internal/mlflow
+    
+    - name: Evaluate model on holdout set
+      run: |
+        python src/steps/evaluator.py
+    
+    - name: Run adversarial robustness tests
+      run: |
+        python tests/model_validation/test_adversarial.py
+    
+    - name: Check for data drift
+      run: |
+        python src/steps/drift_detection.py
+      continue-on-error: true
+    
+    - name: Convert PyTorch to ONNX
+      run: |
+        python scripts/pytorch_to_onnx.py \
+          --model-path mlruns/models/latest/model.pt \
+          --output-path models/anomaly_detector.onnx
+    
+    - name: Validate ONNX model
+      run: |
+        python scripts/validate_onnx.py models/anomaly_detector.onnx
+    
+    - name: Upload model artifact
+      run: |
+        aws s3 cp models/anomaly_detector.onnx s3://yosai-mlops-data/models/${{ github.sha }}/
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  # Stage 4: Build Docker Images
+  build-docker-images:
+    runs-on: ubuntu-latest
+    name: Build & Push Docker Images
+    needs: train-and-validate
+    if: github.ref == 'refs/heads/main'
+    
+    permissions:
+      contents: read
+      id-token: write
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v1
+      with:
+        workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+        service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+    
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+    
+    - name: Configure Docker for GCR
+      run: gcloud auth configure-docker gcr.io
+    
+    # Build Training Image
+    - name: Build Training image
+      run: |
+        docker build \
+          -t gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME_TRAINING }}:${{ github.sha }} \
+          -t gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME_TRAINING }}:latest \
+          -f docker/Dockerfile.training .
+    
+    - name: Push Training image to GCR
+      run: |
+        docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME_TRAINING }}:${{ github.sha }}
+        docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME_TRAINING }}:latest
+    
+    # Build Triton Inference Image
+    - name: Build Triton image
+      run: |
+        docker build \
+          -t gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME_TRITON }}:${{ github.sha }} \
+          -t gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME_TRITON }}:latest \
+          -f docker/Dockerfile.triton .
+    
+    - name: Push Triton image to GCR
+      run: |
+        docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME_TRITON }}:${{ github.sha }}
+        docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME_TRITON }}:latest
+    
+    # Build Drift Detection Image
+    - name: Build Drift Detection image
+      run: |
+        docker build \
+          -t gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME_DRIFT }}:${{ github.sha }} \
+          -t gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME_DRIFT }}:latest \
+          -f docker/Dockerfile.drift .
+    
+    - name: Push Drift Detection image
+      run: |
+        docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME_DRIFT }}:${{ github.sha }}
+
+  # Stage 5: Deploy to Staging
+  deploy-staging:
+    runs-on: ubuntu-latest
+    name: Deploy to Staging
+    needs: build-docker-images
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+    
+    - name: Configure kubectl for GKE
+      run: |
+        gcloud container clusters get-credentials yosai-staging --zone us-central1-a
+      env:
+        GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+    
+    - name: Deploy inference service to staging
+      run: |
+        kubectl set image deployment/yosai-triton \
+          triton=gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME_TRITON }}:${{ github.sha }} \
+          -n staging
+        
+        kubectl rollout status deployment/yosai-triton -n staging --timeout=5m
+    
+    - name: Run smoke tests on staging
+      run: |
+        python tests/smoke_tests/test_inference_service.py \
+          --endpoint http://yosai-triton.staging.svc.cluster.local:8000
+    
+    - name: Run performance tests
+      run: |
+        python tests/performance/test_latency.py \
+          --endpoint http://yosai-triton.staging.svc.cluster.local:8000 \
+          --target-p99-latency=100ms
+
+  # Stage 6: Production Deployment (Canary)
+  deploy-production-canary:
+    runs-on: ubuntu-latest
+    name: Canary Deploy to Production (10% traffic)
+    needs: deploy-staging
+    if: github.ref == 'refs/heads/main'
+    
+    environment:
+      name: production
+      url: https://yosai.prod.internal
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Configure kubectl for Production GKE
+      run: |
+        gcloud container clusters get-credentials yosai-prod --zone us-central1-a
+      env:
+        GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+    
+    - name: Deploy canary (10% traffic to new version)
+      run: |
+        # Update Istio virtual service to route 10% traffic to new version
+        kubectl patch virtualservice yosai-inference -n prod --type merge -p '{
+          "spec": {
+            "hosts": ["yosai-inference"],
+            "http": [{
+              "match": [{"uri": {"prefix": "/"}}],
+              "route": [
+                {"destination": {"host": "yosai-inference-v1"}, "weight": 90},
+                {"destination": {"host": "yosai-inference-v2"}, "weight": 10}
+              ]
+            }]
+          }
+        }'
+    
+    - name: Monitor canary for 30 minutes
+      run: |
+        bash scripts/monitor_canary.sh \
+          --duration=1800 \
+          --error-rate-threshold=1.0 \
+          --latency-p99-threshold=200ms
+    
+    - name: If canary successful, proceed to full rollout
+      run: |
+        echo "✅ Canary deployment successful! Ready for full rollout."
+
+  # Stage 7: Full Production Rollout
+  deploy-production-full:
+    runs-on: ubuntu-latest
+    name: Full Production Rollout (100% traffic)
+    needs: deploy-production-canary
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Configure kubectl
+      run: |
+        gcloud container clusters get-credentials yosai-prod --zone us-central1-a
+    
+    - name: Rollout 100% traffic to new version
+      run: |
+        kubectl patch virtualservice yosai-inference -n prod --type merge -p '{
+          "spec": {
+            "hosts": ["yosai-inference"],
+            "http": [{
+              "match": [{"uri": {"prefix": "/"}}],
+              "route": [
+                {"destination": {"host": "yosai-inference-v2"}, "weight": 100}
+              ]
+            }]
+          }
+        }'
+    
+    - name: Send Slack notification
+      uses: 8398a7/action-slack@v3
+      with:
+        status: success
+        text: '✅ Yōsai Model v${{ github.sha }} deployed to 1000+ factories!'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+
+  # Stage 8: Monitoring & Validation
+  validate-production:
+    runs-on: ubuntu-latest
+    name: Post-Deployment Validation
+    needs: deploy-production-full
+    if: github.ref == 'refs/heads/heads/main'
+    
+    steps:
+    - name: Check inference latency (P99 < 100ms)
+      run: |
+        python scripts/check_metrics.py \
+          --metric inference_latency_p99 \
+          --threshold 100 \
+          --source prometheus
+    
+    - name: Check model accuracy on live data
+      run: |
+        python scripts/check_accuracy.py \
+          --factory-id all \
+          --threshold 0.90
+    
+    - name: Verify edge device sync
+      run: |
+        python scripts/check_edge_sync.py \
+          --target-sync-rate 0.99
+    
+    - name: Alert if issues detected
+      if: failure()
+      run: |
+        curl -X POST ${{ secrets.PAGERDUTY_WEBHOOK }} \
+          -H 'Content-Type: application/json' \
+          -d '{
+            "routing_key": "${{ secrets.PAGERDUTY_KEY }}",
+            "event_action": "trigger",
+            "dedup_key": "yosai-prod-validation-${{ github.sha }}",
+            "payload": {
+              "summary": "Production validation failed after deployment",
+              "severity": "critical",
+              "source": "GitHub Actions"
+            }
+          }'
+

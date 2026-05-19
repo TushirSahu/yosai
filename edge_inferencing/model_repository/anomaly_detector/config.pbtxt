@@ -1,0 +1,27 @@
+name: "anomaly_detector"
+platform: "onnxruntime_onnx"
+max_batch_size: 16
+
+input [
+  {
+    name: "input_image"
+    data_type: TYPE_FP32
+    format: FORMAT_NCHW
+    dims: [ 3, 224, 224 ]
+  }
+]
+output [
+  {
+    name: "anomaly_score"
+    data_type: TYPE_FP32
+    dims: [ 1 ]
+  }
+]
+
+optimization {
+  execution_accelerators {
+    gpu_execution_accelerator : [
+      { name : "tensorrt" }
+    ]
+  }
+}

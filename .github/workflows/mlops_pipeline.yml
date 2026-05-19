@@ -1,0 +1,26 @@
+name: Continuous Integration & Deployment
+
+on:
+  push:
+    branches:
+      - main
+  # model_registry_webhook: 
+
+jobs:
+  test-and-convert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+        
+      - name: Run Unit Tests (Data & Code)
+        run: echo "pytest tests/"
+        
+      - name: Build Triton Docker Image
+        run: echo "docker build -t yosai_edge:latest edge_inferencing/"

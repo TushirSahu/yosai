@@ -1,0 +1,23 @@
+artifact_path: file:///Users/tushirsahu/Desktop/yosai_mlops/mlruns/418196269361218139/models/m-1e2718a8adff47d886f70e2b994c0d8d/artifacts
+flavors:
+  python_function:
+    config:
+      device: null
+    data: data
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.pytorch
+    pickle_module_name: mlflow.pytorch.pickle_module
+    python_version: 3.12.6
+  pytorch:
+    code: null
+    model_data: data
+    pytorch_version: 2.12.0
+mlflow_version: 3.12.0
+model_id: m-1e2718a8adff47d886f70e2b994c0d8d
+model_size_bytes: 51406541
+model_uuid: m-1e2718a8adff47d886f70e2b994c0d8d
+prompts: null
+run_id: 03f94c8cb744471ba3a10cee81d5927b
+utc_time_created: '2026-05-19 04:09:11.133329'

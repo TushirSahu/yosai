@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/tushirsahu/Desktop/yosai_mlops/mlruns/418196269361218139/be61667584314be5ad9722122f68748b/artifacts
+end_time: 1779163751499
+entry_point_name: ''
+experiment_id: '418196269361218139'
+lifecycle_stage: active
+run_id: be61667584314be5ad9722122f68748b
+run_name: drift_detection_phase2
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1779163465190
+status: 3
+tags: []
+user_id: tushirsahu

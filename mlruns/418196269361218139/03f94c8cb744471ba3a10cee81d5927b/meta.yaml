@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/tushirsahu/Desktop/yosai_mlops/mlruns/418196269361218139/03f94c8cb744471ba3a10cee81d5927b/artifacts
+end_time: 1779163751493
+entry_point_name: ''
+experiment_id: '418196269361218139'
+lifecycle_stage: active
+run_id: 03f94c8cb744471ba3a10cee81d5927b
+run_name: retrain_after_drift_v2
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1779163465522
+status: 3
+tags: []
+user_id: tushirsahu

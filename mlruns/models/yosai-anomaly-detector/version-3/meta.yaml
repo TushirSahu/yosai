@@ -1,0 +1,16 @@
+creation_timestamp: 1779163751450
+current_stage: None
+deployment_job_state: null
+description: null
+last_updated_timestamp: 1779163751450
+model_id: m-1e2718a8adff47d886f70e2b994c0d8d
+name: yosai-anomaly-detector
+run_id: 03f94c8cb744471ba3a10cee81d5927b
+run_link: null
+source: models:/m-1e2718a8adff47d886f70e2b994c0d8d
+status: READY
+status_message: null
+storage_location: file:///Users/tushirsahu/Desktop/yosai_mlops/mlruns/418196269361218139/models/m-1e2718a8adff47d886f70e2b994c0d8d/artifacts
+user_id: null
+version: 3
+workspace: default

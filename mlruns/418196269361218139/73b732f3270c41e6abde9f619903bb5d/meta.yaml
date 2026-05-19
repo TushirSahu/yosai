@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/tushirsahu/Desktop/yosai_mlops/mlruns/418196269361218139/73b732f3270c41e6abde9f619903bb5d/artifacts
+end_time: 1779163944855
+entry_point_name: ''
+experiment_id: '418196269361218139'
+lifecycle_stage: active
+run_id: 73b732f3270c41e6abde9f619903bb5d
+run_name: week2_monitoring
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1779163753228
+status: 3
+tags: []
+user_id: tushirsahu

@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/tushirsahu/Desktop/yosai_mlops/mlruns/588246764988578026/e502d6563de54bed981c8aeffa4f8662/artifacts
+end_time: 1779103756323
+entry_point_name: ''
+experiment_id: '588246764988578026'
+lifecycle_stage: active
+run_id: e502d6563de54bed981c8aeffa4f8662
+run_name: abrasive-turtle-284
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1779103655444
+status: 4
+tags: []
+user_id: tushirsahu

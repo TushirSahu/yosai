@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/tushirsahu/Desktop/yosai_mlops/mlruns/418196269361218139/91b1a04d003a4949af4ebed0b156f229/artifacts
+end_time: 1779163464394
+entry_point_name: ''
+experiment_id: '418196269361218139'
+lifecycle_stage: active
+run_id: 91b1a04d003a4949af4ebed0b156f229
+run_name: baseline_training
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1779163217345
+status: 3
+tags: []
+user_id: tushirsahu

@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/tushirsahu/Desktop/yosai_mlops/mlruns/588246764988578026/af800bcd7fa24cc79183fe79c5a8c159/artifacts
+end_time: 1779102442934
+entry_point_name: ''
+experiment_id: '588246764988578026'
+lifecycle_stage: active
+run_id: af800bcd7fa24cc79183fe79c5a8c159
+run_name: unruly-tern-119
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1779102434922
+status: 3
+tags: []
+user_id: tushirsahu
