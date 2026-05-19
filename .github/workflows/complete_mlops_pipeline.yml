@@ -47,6 +47,8 @@ jobs:
       continue-on-error: true
     
     - name: Run unit tests
+      env:
+        PYTHONPATH: .
       run: |
         pytest tests/unit/ -v --cov=src/ --cov-report=xml
     
