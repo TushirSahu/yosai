@@ -1,5 +1,6 @@
 [MASTER]
 ignore=CVS
+extension-pkg-allow-list=cv2
 
 [MESSAGES CONTROL]
 disable=
