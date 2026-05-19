@@ -1,0 +1,28 @@
+[MASTER]
+ignore=CVS
+
+[MESSAGES CONTROL]
+disable=
+    missing-module-docstring,
+    missing-function-docstring,
+    invalid-name,
+    import-error,
+    wrong-import-order,
+    consider-using-from-import,
+    too-many-locals,
+    redefined-outer-name,
+    reimported,
+    import-outside-toplevel,
+    too-many-statements,
+    unused-import,
+    logging-fstring-interpolation,
+    broad-exception-caught,
+    unused-variable,
+    super-with-arguments,
+    superfluous-parens,
+    no-else-return,
+    f-string-without-interpolation,
+    duplicate-code
+
+[FORMAT]
+max-line-length=120
