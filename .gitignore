@@ -9,3 +9,5 @@ data/
 mlruns/
 mlflow.db
 data/
+*.xml
+.coverage

@@ -35,6 +35,7 @@ def client(mock_model):
     with patch("src.serving.app._load_model", return_value=mock_model):
         with patch("src.serving.app.mlflow"):
             from src.serving.app import app
+            app.state.model = mock_model
             yield TestClient(app)
 
 

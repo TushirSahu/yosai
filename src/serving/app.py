@@ -1,5 +1,3 @@
-"""Production-ready Yōsai Inference API with security, observability, and resilience."""
-
 from __future__ import annotations
 
 import base64
