@@ -222,7 +222,7 @@ def continuous_training_demo():
     print(f"   ✅ Complete audit trail of all versions")
     
     print(f"\n📊 View Results in MLflow:")
-    print(f"   🔗 http://127.0.0.1:5000")
+    print(f"   🔗 http://127.0.0.1:5001")
     print(f"   → Experiments: All training runs")
     print(f"   → Model Registry: All model versions")
     

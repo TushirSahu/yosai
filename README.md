@@ -101,7 +101,55 @@ python run_pipeline.py
 
 # View results in MLflow UI
 mlflow ui
-# Open http://127.0.0.1:5000
+# Open http://127.0.0.1:5001
+```
+
+### Local “Production-Like” MLflow (No Cloud)
+This project can run fully offline while still looking like a real production setup:
+- **MLflow Tracking Server** (HTTP)
+- **Postgres** backend store
+- **MinIO** (S3-compatible) artifact store
+
+```bash
+# Start local infra
+docker compose -f infrastructure/local-mlflow/docker-compose.yml up -d --build
+
+# Point the pipeline at the local MLflow server
+export MLFLOW_TRACKING_URI=http://127.0.0.1:5001
+
+# (Optional) only needed if you override MinIO creds/endpoints
+export MLFLOW_S3_ENDPOINT_URL=http://127.0.0.1:9000
+export AWS_ACCESS_KEY_ID=minioadmin
+export AWS_SECRET_ACCESS_KEY=minioadmin
+
+# Run pipeline (logs params/metrics/artifacts to MLflow)
+python run_pipeline.py
+
+# Open MLflow UI
+open http://127.0.0.1:5001
+```
+
+### Local Inference API (FastAPI)
+Runs a minimal production-style inference server with:
+- `GET /health`
+- `POST /predict` (base64 image → anomaly score)
+
+It loads the **latest** model from MLflow in this order:
+1) Model Registry stage `Production` → `Staging` → `None`
+2) Fallback: latest run artifact `runs:/.../model` in the `yosai-edge-mlops` experiment
+
+```bash
+# Ensure deps installed
+pip install -r requirements.txt
+
+# If you want the API to pull from the local MLflow server:
+export MLFLOW_TRACKING_URI=http://127.0.0.1:5001
+
+# Start the API
+uvicorn src.serving.app:app --host 0.0.0.0 --port 8000
+
+# Health
+curl http://127.0.0.1:8000/health
 ```
 
 ### Run the Continuous Training Demo 

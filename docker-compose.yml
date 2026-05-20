@@ -1,0 +1,77 @@
+services:
+  # MinIO for MLflow artifact storage
+  minio:
+    image: minio/minio:latest
+    container_name: yosai-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # MLflow tracking server
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: yosai-mlflow
+    ports:
+      - "5001:5000"
+    environment:
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_DEFAULT_REGION: us-east-1
+      MLFLOW_ARTIFACT_ROOT: s3://mlflow
+    depends_on:
+      minio:
+        condition: service_healthy
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri sqlite:///mlflow.db
+      --artifacts-destination s3://mlflow
+      --default-artifact-root s3://mlflow
+
+  # Inference API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.serving
+    container_name: yosai-api
+    ports:
+      - "8000:8000"
+    environment:
+      APP_NAME: "Yōsai Inference API"
+      APP_VERSION: "0.1.0"
+      ENVIRONMENT: production
+      MLFLOW__TRACKING_URI: http://mlflow:5000
+      MLFLOW__EXPERIMENT_NAME: yosai-edge-mlops
+      MLFLOW__MODEL_NAME: yosai-anomaly-detector
+      MLFLOW__S3_ENDPOINT_URL: http://minio:9000
+      MLFLOW__AWS_ACCESS_KEY_ID: minioadmin
+      MLFLOW__AWS_SECRET_ACCESS_KEY: minioadmin
+      MLFLOW__AWS_DEFAULT_REGION: us-east-1
+      API__RATE_LIMIT_PER_MINUTE: 60
+    depends_on:
+      mlflow:
+        condition: service_started
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  minio_data:

@@ -4,5 +4,7 @@
 *.pyc
 __pycache__/
 *.log
-./.venv/
-./data/
+.venv/
+data/
+mlruns/
+mlflow.db
