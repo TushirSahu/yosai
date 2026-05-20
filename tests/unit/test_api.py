@@ -3,7 +3,7 @@
 import base64
 import io
 from unittest.mock import MagicMock, patch
-
+# import mlflow
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
@@ -18,11 +18,18 @@ def mock_model():
     mock.model_version = "1"
     mock.loaded_at = 1234567890.0
 
-    # Mock prediction returning a tensor
-    mock_model = MagicMock()
-    mock_model.return_value = MagicMock()
-    mock_model.return_value.squeeze.return_value.cpu.return_value.numpy.return_value = 0.75
-    mock.model = mock_model
+    # Mock prediction returning a value that works for both torch and numpy paths
+    # We use np.array([0.75]) because it has .item() and can be indexed [0]
+    prediction_value = np.array([0.75])
+
+    # Mock the torch-like call chain: model(x) -> squeeze() -> cpu() -> numpy() -> item()
+    mock_torch_model = MagicMock()
+    mock_torch_model.return_value.squeeze.return_value.cpu.return_value.numpy.return_value = prediction_value
+
+    # Mock the pyfunc-like call: model.predict(x)
+    mock_torch_model.predict.return_value = prediction_value
+
+    mock.model = mock_torch_model
 
     return mock
 
@@ -32,9 +39,16 @@ def mock_model():
 @pytest.fixture
 def client(mock_model):
     """Create test client with mocked model."""
-    with patch("src.serving.app._load_model", return_value=mock_model):
-        with patch("src.serving.app.mlflow"):
-            from src.serving.app import app
+    import sys
+    from unittest.mock import MagicMock
+
+    # Mock mlflow in sys.modules so import doesn't fail
+    mock_mlflow = MagicMock()
+    with patch.dict('sys.modules', {'mlflow': mock_mlflow}):
+        from src.serving.app import app
+
+        # Mock the model loader and set the state
+        with patch("src.serving.app._load_model", return_value=mock_model):
             app.state.model = mock_model
             yield TestClient(app)
 
